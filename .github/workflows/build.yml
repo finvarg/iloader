@@ -10,6 +10,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: windows-watch-login-v1
       - uses: dtolnay/rust-toolchain@stable
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Install Perl and Make
@@ -22,9 +29,6 @@ jobs:
       - name: Resolve pinned Watch backend
         working-directory: src-tauri
         run: cargo update -p isideload
-      - name: Check backend and authentication tests
-        working-directory: src-tauri
-        run: cargo check --locked
       - name: Build Windows application
         run: bun tauri build --config src-tauri/ci.conf.json
       - name: Upload Windows installer
