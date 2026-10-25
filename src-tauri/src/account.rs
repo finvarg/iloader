@@ -1,6 +1,6 @@
 use futures::FutureExt;
 use isideload::{
-    anisette::remote_v3::RemoteV3AnisetteProvider,
+    anisette::remote_v3::{RemoteV3AnisetteProvider, ANISETTE_STATE_KEY},
     auth::apple_account::{AppleAccount, TwoFactorCallbackParams, TwoFactorCallbackResponse},
     dev::{
         app_ids::{AppIdsApi, ListAppIdsResponse},
@@ -131,29 +131,25 @@ pub fn invalidate_account(sideloader_state: State<'_, SideloaderMutex>) {
 }
 
 #[tauri::command]
-pub fn reset_anisette_state() -> Result<bool, AppError> {
-    let state_entry = Entry::new("iloader", "anisette_state").map_err(|e| {
-        AppError::KeyringWithMessage(
-            "Failed to create keyring entry for anisette".into(),
-            e.to_string(),
-        )
-    })?;
-
-    match state_entry.delete_credential() {
-        Ok(_) => {
-            debug!("Anisette state deleted from keyring.");
-            Ok(true)
-        }
-        Err(keyring::Error::NoEntry) => {
-            debug!("No existing anisette state found in keyring, nothing to delete.");
-            Ok(false)
-        }
-        Err(e) => Err(AppError::KeyringWithMessage(
-            "Failed to delete anisette state".into(),
-            e.to_string(),
-        )),
-    }
+pub fn reset_anisette_state(handle: AppHandle) -> Result<bool, AppError> {
+    let storage = create_sideloading_storage(&handle)?;
+    reset_current_anisette(storage.as_ref())
 }
+
+fn reset_current_anisette(
+    storage: &dyn isideload::util::storage::SideloadingStorage,
+) -> Result<bool, AppError> {
+    let previous = storage.retrieve_data(ANISETTE_STATE_KEY)
+        .map_err(|e| AppError::Misc(format!("Failed to read anisette state: {e}")))?;
+    let existed = previous.as_ref().is_some_and(|data| !data.is_empty());
+    if existed {
+        storage.delete(ANISETTE_STATE_KEY)
+            .map_err(|e| AppError::Misc(format!("Failed to reset anisette state: {e}")))?;
+        debug!("Current anisette state reset; account and certificates preserved.");
+    }
+    Ok(existed)
+}
+
 
 async fn login(
     app: &AppHandle,
@@ -330,4 +326,25 @@ pub async fn delete_app_id(
     dev_session.delete_app_id(&team, &app_id_id, None).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod anisette_reset_tests {
+    use super::*;
+    use isideload::util::storage::{InMemoryStorage, SideloadingStorage};
+
+    #[test]
+    fn reset_only_current_state_and_allow_repeated_reset() {
+        let storage = InMemoryStorage::new();
+        storage.store_data(ANISETTE_STATE_KEY, b"expired anisette").unwrap();
+        storage.store_data("certificate", b"keep certificate").unwrap();
+        storage.store_data("account", b"keep account").unwrap();
+        storage.store_data("anisette_state", b"keep legacy state").unwrap();
+
+        assert!(reset_current_anisette(&storage).unwrap());
+        assert!(!reset_current_anisette(&storage).unwrap());
+        assert_eq!(storage.retrieve_data("certificate").unwrap().unwrap(), b"keep certificate");
+        assert_eq!(storage.retrieve_data("account").unwrap().unwrap(), b"keep account");
+        assert_eq!(storage.retrieve_data("anisette_state").unwrap().unwrap(), b"keep legacy state");
+    }
 }
