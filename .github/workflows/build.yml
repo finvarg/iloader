@@ -29,6 +29,9 @@ jobs:
       - name: Resolve pinned Watch backend
         working-directory: src-tauri
         run: cargo update -p isideload
+      - name: Test selective anisette reset
+        working-directory: src-tauri
+        run: cargo test --lib anisette_reset_tests
       - name: Build Windows application
         run: bun tauri build --config src-tauri/ci.conf.json
       - name: Upload Windows installer
