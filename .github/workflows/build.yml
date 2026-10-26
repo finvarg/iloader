@@ -1,8 +1,12 @@
 name: Build Watch iLoader for Windows
 on:
   push:
-    branches: ["codex/upstream-watch-20261026"]
+    branches: ["fix/watch-login-20261014"]
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 jobs:
