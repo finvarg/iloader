@@ -22,6 +22,7 @@
   "app": {
     "language": "Language",
     "github": "GitHub",
+    "donate": "Donate",
     "open_github_failed": "Unable to open GitHub link",
     "section_account": "Account",
     "section_placeholder": "Placeholder",
@@ -197,7 +198,7 @@
     "stored_rppairing_deleted_success": "Stored pairing deleted successfully!",
     "failed_delete_stored_rppairing": "Failed to delete stored pairing",
     "dont_use_keyring": "Don't use keyring",
-    "dont_use_keyring_message": "This makes iloader less secure by storing pairing files, anisette state, and certitficates on disk. Enable this only if the default keyring storage doesn't work and you understand the risks."
+    "dont_use_keyring_message": "This makes iloader less secure by storing pairing files, anisette state, and certificates on disk. Enable this only if the default keyring storage doesn't work and you understand the risks."
   },
   "dialog": {
     "confirm": "Confirm",

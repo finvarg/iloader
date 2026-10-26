@@ -1,7 +1,7 @@
 name: Build Watch iLoader for Windows
 on:
   push:
-    branches: ["fix/watch-login-20261014"]
+    branches: ["codex/upstream-watch-20261026"]
   workflow_dispatch:
 permissions:
   contents: read

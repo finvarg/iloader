@@ -7,7 +7,12 @@ use isideload::{
         certificates::{CertificatesApi, DevelopmentCertificate},
         developer_session::DeveloperSession,
     },
-    sideload::{SideloaderBuilder, builder::MaxCertsBehavior, sideloader::Sideloader},
+    sideload::{
+        SideloaderBuilder,
+        builder::{ExtensionsBehavior, ExtensionsBehaviorSelection, MaxCertsBehavior},
+        sideloader::Sideloader,
+    },
+    util::callbacks::{ExtensionsBehaviorCallbackBox, MaxCertsCallbackBox},
 };
 use keyring::Entry;
 use rootcause::prelude::*;
@@ -34,7 +39,7 @@ pub async fn login_new(
     anisette_server: String,
     save_credentials: bool,
 ) -> Result<(), AppError> {
-    let account = login(&handle, &window, &email, &password, anisette_server).await?;
+    let account = login(&handle, window, &email, &password, anisette_server).await?;
     let mut sideloader_guard = sideloader_state.lock().unwrap();
     *sideloader_guard = Some(account);
 
@@ -83,7 +88,7 @@ pub async fn login_stored(
     let password = pass_entry.get_password().map_err(|e| {
         AppError::KeyringWithMessage("Failed to get credentials".to_string(), e.to_string())
     })?;
-    let account = login(&handle, &window, &email, &password, anisette_server).await?;
+    let account = login(&handle, window, &email, &password, anisette_server).await?;
     let mut sideloader_guard = sideloader_state.lock().unwrap();
     *sideloader_guard = Some(account);
 
@@ -118,10 +123,9 @@ pub fn delete_account(handle: AppHandle, email: String) -> Result<(), AppError> 
 #[tauri::command]
 pub fn logged_in_as(sideloader_state: State<'_, SideloaderMutex>) -> Option<String> {
     let sideloader_guard = sideloader_state.lock().unwrap();
-    if let Some(account) = &*sideloader_guard {
-        return Some(account.get_email().to_string());
-    }
-    None
+    sideloader_guard
+        .as_ref()
+        .map(|account| account.get_email().to_string())
 }
 
 #[tauri::command]
@@ -153,11 +157,11 @@ fn reset_current_anisette(
 
 async fn login(
     app: &AppHandle,
-    window: &Window,
+    window: Window,
     email: &str,
     password: &str,
     anisette_server: String,
-) -> Result<Sideloader, AppError> {
+) -> Result<Sideloader<MaxCertsCallbackBox, ExtensionsBehaviorCallbackBox>, AppError> {
     let tfa_closure = {
         let window_clone = window.clone();
         move |params: TwoFactorCallbackParams| {
@@ -206,42 +210,44 @@ async fn login(
 
     debug!("Created developer session");
 
-    let max_certs_callback = {
-        let window_clone = window.clone();
-        move |certs: &Vec<DevelopmentCertificate>| -> Option<Vec<String>> {
-            let cert_infos: Vec<CertificateInfo> = certs
-                .iter()
-                .map(|cert| CertificateInfo {
-                    name: cert.name.clone(),
-                    certificate_id: cert.certificate_id.clone(),
-                    serial_number: cert.serial_number.clone(),
-                    machine_name: cert.machine_name.clone(),
-                    machine_id: cert.machine_id.clone(),
-                })
-                .collect();
-            window_clone
-                .emit("max-certs-reached", cert_infos)
-                .expect("Failed to emit max-certs-reached event");
+    let max_certs_callback: MaxCertsCallbackBox =
+        Box::new(move |certs: Vec<DevelopmentCertificate>| {
+            let window_clone = window.clone();
+            Box::pin(async move {
+                let cert_infos: Vec<CertificateInfo> = certs
+                    .iter()
+                    .map(|cert| CertificateInfo {
+                        name: cert.name.clone(),
+                        certificate_id: cert.certificate_id.clone(),
+                        serial_number: cert.serial_number.clone(),
+                        machine_name: cert.machine_name.clone(),
+                        machine_id: cert.machine_id.clone(),
+                    })
+                    .collect();
+                window_clone.emit("max-certs-reached", cert_infos)?;
 
-            let (tx, rx) = std::sync::mpsc::channel::<Option<Vec<String>>>();
-            let handler_id = window_clone.listen("max-certs-response", move |event| {
-                let certs = event.payload();
-                let certs = serde_json::from_str::<Option<Vec<String>>>(certs).unwrap_or(None);
-                let _ = tx.send(certs);
-            });
+                let (tx, rx) = std::sync::mpsc::channel::<Option<Vec<String>>>();
+                let handler_id = window_clone.listen("max-certs-response", move |event| {
+                    let certs = event.payload();
+                    let certs = serde_json::from_str::<Option<Vec<String>>>(certs).unwrap_or(None);
+                    let _ = tx.send(certs);
+                });
 
-            let result = rx.recv_timeout(Duration::from_secs(300));
-            window_clone.unlisten(handler_id);
-            result.unwrap_or(None)
-        }
-    };
+                let result = rx.recv_timeout(Duration::from_secs(300));
+                window_clone.unlisten(handler_id);
+                Ok(result?)
+            })
+        });
 
     // TODO: Team Selection
 
     let sideloader = SideloaderBuilder::new(dev_session, email.to_lowercase())
         .machine_name("iloader".into())
         .storage(create_sideloading_storage(app)?)
-        .max_certs_behavior(MaxCertsBehavior::Prompt(Box::new(max_certs_callback)))
+        .extensions_behavior(ExtensionsBehaviorSelection::Fixed(
+            ExtensionsBehavior::ReuseMain,
+        ))
+        .max_certs_behavior(MaxCertsBehavior::Prompt(max_certs_callback))
         .build();
 
     debug!("Built sideloader");
@@ -332,6 +338,13 @@ pub async fn delete_app_id(
 mod anisette_reset_tests {
     use super::*;
     use isideload::util::storage::{InMemoryStorage, SideloadingStorage};
+
+    #[test]
+    fn watch_profiles_remain_separate_while_ios_can_reuse_main() {
+        assert!(matches!(ExtensionsBehavior::ReuseMain.with_watch_support(true), ExtensionsBehavior::RegisterAll));
+        assert!(matches!(ExtensionsBehavior::ReuseMain.with_watch_support(false), ExtensionsBehavior::ReuseMain));
+        assert!(matches!(ExtensionsBehavior::RegisterAll.with_watch_support(false), ExtensionsBehavior::RegisterAll));
+    }
 
     #[test]
     fn reset_only_current_state_and_allow_repeated_reset() {

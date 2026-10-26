@@ -16,10 +16,11 @@
 ---
 
 [![Build iloader](https://img.shields.io/github/actions/workflow/status/nab138/iloader/build.yml?style=flat&logo=github&logoColor=white&label=Build%20iloader)](https://github.com/nab138/iloader/actions/workflows/build.yml) ![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fgist.githubusercontent.com%2Fnab138%2F28258aff7e3f1d3a3084a21f4cff2e57%2Fraw%2Filoader_downloads.json&style=flat)
+[![Sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/nab138)
 
 Install SideStore (or other apps) and import your pairing file with ease
 
-**This repository and [iloader.app](https://iloader.app) are the only official ways to download iloader. There is also an unofficial [Homebrew cask](https://formulae.brew.sh/cask/iloader) and an unofficial [AUR package](https://aur.archlinux.org/packages/iloader-bin) maintained by the community. Do not download from any other sources or websites.**
+**This repository and [iloader.app](https://iloader.app) are the only official ways to download iloader. There is also an unofficial [Homebrew cask](https://formulae.brew.sh/cask/iloader), an unofficial [AUR package](https://aur.archlinux.org/packages/iloader-bin), and an unofficial [Fedora COPR repository](https://copr.fedorainfracloud.org/coprs/anudeepd/iloader) maintained by the community. Do not download from any other sources or websites.**
 
 <img width="1918" height="998" alt="iloader0" src="https://github.com/user-attachments/assets/93cd135d-6d89-46ee-9b9f-12c596806911" />
 
@@ -31,6 +32,8 @@ Install SideStore (or other apps) and import your pairing file with ease
   - Linux: Potentially included, if not, install via your package manager
 - Install the latest version for your platform from the [releases](https://github.com/nab138/iloader/releases)
   - NixOS: Use the flake `github:nab138/iloader`
+  - Fedora: Use the .RPM or the unofficial [Fedora COPR repository](https://copr.fedorainfracloud.org/coprs/anudeepd/iloader)
+  - Arch: Use the unofficial [AUR package](https://aur.archlinux.org/packages/iloader-bin),
 - Plug in your iDevice to your computer
 - Open the app
 - Sign into your Apple ID
@@ -111,7 +114,7 @@ Thank you to everyone who has contributed translations! See the [Translating](#t
 - [notmalicik](https://github.com/notmalicik): Română (ro)
 - [mirdukkkkk](https://github.com/mirdukkkkk): Improved Russian (ru)
 - [okinaau](https://github.com/okinaau): Arabic (ar)
-- [WingChunWong](https://github.com/WingChunWong): Cantonese (zh_hk) & Improved Chinese (zh_tw & zh_cn)
+- [ChouChiu](https://github.com/ChouChiu): Cantonese (zh_hk) & Improved Chinese (zh_tw & zh_cn)
 - [marcinmajsc](https://github.com/marcinmajsc): Polish (pl)
 - [ern775](https://github.com/ern775): Turkish (tr)
 - [canpng](https://github.com/canpng): Improved Turkish (tr)
@@ -126,6 +129,12 @@ Thank you to everyone who has contributed translations! See the [Translating](#t
 - [Kynonim](https://github.com/Kynonim): Indonesian (id)
 - [DD00031](https://github.com/DD00031): Dutch (nl)
 - [Toritan123](https://github.com/Toritan123): Improved Japanese (ja)
+- [marcinmajsc](https://github.com/marcinmajsc): Improved Polish (pl)
+- [dleiferives](https://github.com/dleiferives): Greek (el)
+- [ShadowWLX](https://github.com/ShadowWLX): Improved French (fr)
+- [fkpcomposer](https://github.com/fkpcomposer): Brazilian Portuguese (pt_br)
+- [474FrediFred](https://github.com/474FrediFred): Swiss German (de_ch)
+- [bovae](https://github.com/bovae) & [b1twalker](https://github.com/b1twalker): Ukranian (uk)
 
 ## License
 
@@ -137,15 +146,10 @@ Branding, logos, media assets, and the name “iloader” are not licensed under
 
 You may retain or use branding materials in forks, tutorials, or documentation if you include a clear link to either the official site (https://iloader.app) or the iloader source code repository (https://github.com/nab138/iloader) and do not imply official endorsement. See [LICENSE-BRANDING](/LICENSE-BRANDING) for full details.
 
+## Contributing
+
+Please read our [Contributing](/CONTRIBUTING.md) policy before making a contribution.
+
 ## Future Plans
 
-- Checks for if device is in developer mode, has password set, etc
-- Automatic anisette fallback
-- Team selection when an account has multiple teams
-- Auto-refresh installed apps
-  - Minimize to tray
-  - Detect installed apps
-  - Refresh apps automatically
-- Set a "default" account to automatically log into
-- Import SideStore account info automatically
-- Mount DDI and open sidestore after installation
+iloader is currently being overhauled, see the [trello board](https://trello.com/b/hAe1LHTj/iloader) for more info!
